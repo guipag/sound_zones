@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="ad481d13-cb29-4896-95b4-2db1147cb93d" name="local">
+        <fileTransfer accessType="SFTP" host="localhost" port="23" sshConfigId="57e57b7f-2324-4b4d-9b75-b136ea11902d" sshConfig="gpages@localhost:23 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

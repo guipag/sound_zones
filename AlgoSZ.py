@@ -69,7 +69,7 @@ class PressureMatchingGrad(AlgoSZ):
         self.setH(room.getH('B'), room.getH('D'))
 
     def setDesire(self, target, noHP):
-        self.d = np.block([np.concatenate((2e-5*10**(target/20)*np.squeeze(self.HB_d[noHP,no_Mic,:])+2e-5*10**(target/20)*np.squeeze(self.HB_d[noHP+1,no_Mic,:]), np.zeros(self.nFir-1))) for no_Mic in range(self.nbMic)])
+        self.d = np.block([np.concatenate((2e-5*10**(target/20)*np.squeeze(self.HB_d[noHP, no_Mic ,:]), np.zeros(self.nFir - 1))) for no_Mic in range(self.nbMic)])
 
         return self
 
@@ -87,13 +87,15 @@ class PressureMatchingGrad(AlgoSZ):
     #     return h, err
     def solve(self, beta, regu, min_err = 1e-10):
         h = np.zeros(self.nFir*self.nbHP)
-        mu = 2
+        mu = 1
         err = [1]
         while err[-1] > min_err:
             h_0 = h
+
             H_t = (beta * self.HB.T @ self.HB + (1 - beta) * self.HD.T @ self.HD + regu * np.eye(self.HB.shape[1]))
             r = 2*(self.HB.T @ self.d-H_t@h)
-            mu = (r.T@r)/(2*r.T@H_t@r)
+            mu = (r.T@r)/(2*r.T@H_t.T@r)
+            # regu = (r.T@H_t@H_t.T@r@r.T@H_t@H_t.T@H_t@r-r.T@H_t@h@r.T@H_t@H_t.T@H_t@H_t.T@r)/(r.T@H_t@h@r.T@H_t@H_t.T@H_t@h-r.T@H_t@H_t.T@r@h.T@H_t.T@H_t@h)
             h = h + mu * r
             # descente stochastique / batch (ADAM)
             err.append(np.mean((h-h_0)**2))
@@ -111,7 +113,11 @@ class PressureMatchingGradLTV(PressureMatchingGrad):
         mu = 1
         w_0 = self.w
         self.setH(self.room.getH('B'), self.room.getH('D'))
-        self.w = self.w - 1 / 2 * mu * ((beta * self.HB.T @ self.HB + (1 - beta) * self.HD.T @ self.HD + regu * np.eye(self.HB.shape[1])) @ self.w - 2 * self.HB.T @ self.d)
+        H_t = (beta * self.HB.T @ self.HB + (1 - beta) * self.HD.T @ self.HD + regu * np.eye(self.HB.shape[1]))
+        r = 2 * (self.HB.T @ self.d - H_t @ self.w)
+        mu = (r.T @ r) / (2 * r.T @ H_t.T @ r)
+        # self.w = self.w - 1 / 2 * mu * ((beta * self.HB.T @ self.HB + (1 - beta) * self.HD.T @ self.HD + regu * np.eye(self.HB.shape[1])) @ self.w - 2 * self.HB.T @ self.d)
+        self.w = self.w + mu * r
         e = np.mean((self.w - w_0) ** 2)
         return np.reshape(self.w, (self.nbHP, self.nFir)), e
 
@@ -187,9 +193,11 @@ def metrics(room, filter, inp, tInt):
     for n in range(nInt, len_sig):
         press[:, n] = np.sqrt(np.mean(z[:, n - nInt:n] ** 2, 1)) / 2e-5
 
+    inp_err = np.zeros_like(inp)
+    inp_err[6, :] = inp[6, :]
     err = np.zeros((room.nbMic//2, len_sig))
-    p = room.conv(inp, False)
+    p = room.conv(inp_err, False)
     for n in range(nInt, len_sig):
-        err[:, n] = (np.sqrt(np.mean(p[0:room.nbMic//2, n - nInt:n] ** 2, 1)) - 1) / np.sqrt(np.mean(p[0:room.nbMic//2, n - nInt:n] ** 2, 1))
+        err[:, n] = (np.sqrt(np.mean(p[0:room.nbMic//2, n - nInt:n] ** 2, 1)) - 2e-5*10**(94/20)) / np.sqrt(np.mean(p[0:room.nbMic//2, n - nInt:n] ** 2, 1))
 
     return CT, press, err

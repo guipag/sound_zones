@@ -23,7 +23,7 @@ def conv_LTV_MIMO(h, x):
     dim = h.shape
     y = np.zeros_like(x)
     for no_hp in range(dim[1]):
-        y[no_hp, :] = conv_LTV(h[:, no_hp, :].T, x[no_hp, :])
+        y[no_hp, :] = conv_LTV(np.squeeze(h[:, no_hp, :]).T, x[no_hp, :])
     return y
 
 def conv_LTV_MIMO_par(args):

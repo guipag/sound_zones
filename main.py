@@ -1,4 +1,4 @@
-from AlgoSZ import PressureMatchingGrad
+from AlgoSZ import PressureMatchingGrad, metrics
 from Room import Room
 import numpy as np
 import matplotlib.pyplot as plt
@@ -42,29 +42,31 @@ PMt.setDesire(94, 5)
 w, e = PMt.solve(0.5, 1e-6, min_err=1e-8)
 
 plt.figure()
-plt.stem(e[1:])
-plt.show()
+plt.plot(10*np.log10(e[1:]))
 
-room.addFilter(w)
-#room.plot()
 
-cont = []
-f_t = np.linspace(50, 2000, 100)
 
-for f in f_t:
-    x = np.zeros((room.nbHP, Ts * Fs))
-    t = np.arange(Ts * Fs) / Fs
-    for no_in in range(room.nbHP):
-        x[no_in, :] = np.sin(2 * np.pi * f * t)
+# cont = []
+# f_t = np.linspace(50, 2000, 100)
 
-    sig = room.conv(x)
-    cont.append(20 * np.log10(np.mean(CT(sig[9:18, :], sig[0:9, :]))))
+x = np.zeros((room.nbHP, Ts * Fs))
+t = np.arange(Ts * Fs) / Fs
+for no_in in range(room.nbHP):
+    x[no_in, :] = np.sin(2 * np.pi * 100 * t)
+
+# for f in f_t:
+#     x = np.zeros((room.nbHP, Ts * Fs))
+#     t = np.arange(Ts * Fs) / Fs
+#     for no_in in range(room.nbHP):
+#         x[no_in, :] = np.sin(2 * np.pi * f * t)
+#
+#     sig = room.conv(x)
+#     cont.append(20 * np.log10(np.mean(CT(sig[9:18, :], sig[0:9, :]))))
+
+CT, press, err = metrics(room, w, x, 0.1)
+
 
 plt.figure()
-plt.plot(room.h[0, 0, :])
-
-
-plt.figure()
-plt.semilogx(f_t, cont)
+plt.plot(np.arange(CT.shape[1])/Fs, CT.T)
 plt.grid()
 plt.show()

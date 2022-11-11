@@ -8,17 +8,22 @@ from conv_py import *
 import concurrent.futures
 from functools import partial
 
+
 def dist(pos1, pos2):
     return math.sqrt(sum(v * v for v in tuple(map(operator.sub, pos1, pos2))))
 
-def RIAnech(args, nFir, Ts):
-    hp = args[0]
-    mic = args[1]
+def RIAnech(args):
+    nFir = args[0]
+    Ts = args[1]
+    hp = args[2]
+    mic = args[3]
     H = np.zeros(nFir, dtype=complex)
     Freq = np.arange(nFir) / (nFir * Ts)
     H[:int(nFir / 2)] = 1 / (4 * np.pi * dist(hp, mic)) * np.exp(-1J * 2 * np.pi * Freq[:int(nFir / 2)] * dist(hp, mic) / 343)
     H[int(nFir / 2) + 1:] = np.conjugate(H[int(nFir / 2) - 1:0:-1])
     return np.real(ifft(H))
+
+
 def longest(a):
     return max(len(a), *map(longest, a)) if isinstance(a, list) and a else 0
 
@@ -30,7 +35,7 @@ class Mic:
 
 
 class MicLTV(Mic):
-    V = 1
+    V = 0.5
 
     def __init__(self, pos, type = 'B'):
         self.traj = pos
@@ -140,14 +145,14 @@ class Room:
         return self
 
     def generateRiFast(self):
-        # self.h = np.zeros((self.nbHP, self.nbMic, self.nFir))
-        # for i in range(self.nbMic):
-        #     for j in range(self.nbHP):
-        #         self.h[j, i, :] = self.RIAnech(self.hp[j], self.mic[i])
+        self.h = np.zeros((self.nbHP, self.nbMic, self.nFir))
+        for i in range(self.nbMic):
+            for j in range(self.nbHP):
+                self.h[j, i, :] = self.RIAnech(self.hp[j], self.mic[i])
                 # self.setH(j, i, self.RIAnech(self.hp[j], self.mic[i]))
         with concurrent.futures.ProcessPoolExecutor() as executor:
             h = np.array(
-                list(executor.map(partial(RIAnech,nFir=self.nFir,Ts=self.Ts) , zip([[hp.pos, mic.pos] for hp in self.hp for mic in self.mic]))))
+                list(executor.map(RIAnech, zip(self.nFir, self.Ts, self.hp, self.mic))))
         return self
 
     def setMic(self, mic):
@@ -220,8 +225,6 @@ class Room:
             coord.append(hp.pos)
         x, y = zip(*coord)
         plt.scatter(x, y)
-        plt.xlabel('x (m)')
-        plt.ylabel('y (m)')
         plt.grid()
         plt.show()
 
@@ -254,14 +257,12 @@ class RoomLTV(Room):
             with concurrent.futures.ProcessPoolExecutor() as executor:
                 inp = np.array(list(executor.map(conv_LTV_MIMO_par, zip([self.filt[:, no_hp, :] for no_hp in range(self.nbHP)], inp))))
         h = np.zeros((self.nbMic, len(t_tot), self.nbHP, self.nFir))
-        with open('var_h_1_10cm.npy', 'rb') as f:
+        with open('var_h_05.npy', 'rb') as f:
             h = np.load(f)
         # for no_mic in range(self.nbMic):
         #     for n, t in enumerate(t_tot):
         #         self.setT(t)
         #         h[no_mic, n, :, :] = np.squeeze(self.h[:, no_mic, :])
-        # with open('var_h_1_10cmb.npy', 'wb') as f:
-        #     np.save(f, h)
         with concurrent.futures.ProcessPoolExecutor() as executor:
             out = np.array(list(executor.map(partial(conv_par, y=inp), list(zip(range(self.nbMic), [h[no_mic, :, :, :] for no_mic in range(self.nbMic)])))))
 

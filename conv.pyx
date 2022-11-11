@@ -27,6 +27,32 @@ cpdef double[:] conv_LTV(double[:,:] h, double[:] x):
     for ii in range(len_sig):
         sig[ii] = conv_LTV_k(h, x, ii)
     return sig
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.nonecheck(False)
+cpdef double[:,:] conv_LTV_MIMO(double[:,:,:] h, double[:,:] x):
+    cdef Py_ssize_t[:] dim = h.shape
+    cdef double[:,:] y = np.zeros_like(x)
+    cdef Py_ssize_t no_hp
+
+    for no_hp in range(dim[1]):
+        y[no_hp, :] = conv_LTV(np.squeeze(h[:, no_hp, :]).T, x[no_hp, :])
+    return y
+
+# @cython.boundscheck(False)
+# @cython.wraparound(False)
+# @cython.nonecheck(False)
+# cpdef double[:] conv_LTV_MISO(double[:,:,:] h, double[:,:] x):
+#     cdef Py_ssize_t[:] dim = h.shape
+#     cdef double[:] y = np.zeros(dim[0])
+#     cdef Py_ssize_t no_hp
+#
+#     for no_hp in range(dim[1]):
+#         y[:] = y[:] + conv_LTV(np.squeeze(h[:, no_hp, :]).T, x[no_hp, :])
+#     return y
+
+
 #
 # @cython.boundscheck(False)
 # @cython.wraparound(False)
