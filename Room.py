@@ -248,6 +248,14 @@ class RoomLTV(Room):
         self.generateRi()
         return self
 
+    def getAllH(self, t_tot):
+        h = np.zeros((len(t_tot), self.nbMic, self.nbHP, self.nFir))
+        for no_mic in range(self.nbMic):
+            for n, t in enumerate(t_tot):
+                self.setT(t)
+                h[n, no_mic, :, :] = np.squeeze(self.h[:, no_mic, :])
+        return h
+
     def conv(self, inp, withFilter = True):
         t_tot = np.arange(inp.shape[1])*self.Ts
         if withFilter and hasattr(self, 'filt'):
