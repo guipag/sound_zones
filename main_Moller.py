@@ -2,6 +2,7 @@ import Room
 import AlgoSZ
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.linalg as lg
 
 class MH_SZ(AlgoSZ.AlgoSZ):
     def __init__(self, room, Ic, Ip):
@@ -26,8 +27,23 @@ class MH_SZ(AlgoSZ.AlgoSZ):
         self.inp = inp
         self.h = room.getAllH(np.arange(len(inp))*self.room.Ts) # h = (len(t_tot), self.nbMic, self.nbHP, self.nFir)
 
-    def solve(self):
+    def setTarget(self):
+        self.p_t = 0
         pass
+
+    def solve(self, a_d, a_t, a_w, a_env, a_bs):
+        Q_d = a_d * self.Ub().T @ self.psib_d().T @ self.psib_d() @ self.Ub()
+        Q_b = a_t * self.Ub().T @ self.psib_b().T @ self.psib_b() @ self.Ub()
+        Q_w = a_w * np.eye(len(Q_d))
+        Q_env = a_env * np.kron(np.ones(self.room.nbHP * self.Ic), self.w_env)
+        Q_bs = a_bs * self.Ub().T @ self.psib_s().T @ self.psib_s() @ self.Ub()
+        q_d = a_d * self.Ub().T @ self.psib_d().T @ self.gammab_d(self.k) @ self.z
+        q_b = a_t * self.Ub().T @ self.psib_b().T @ (self.gammab_b(self.k) @ self.z - self.p_t)
+        q_bs = a_bs * self.Ub().T @ self.psib_s().T @ self.gammab_s() @ self.z
+        return lg.solve(Q_d + Q_b + Q_w + Q_env + Q_bs, q_d + q_b + q_bs)
+
+    def setWenv(self, w_env):
+        self.w_env = w_env
 
     def psi(self, mic, hp, k):
         psi = np.zeros((self.Ip, self.Ip))
@@ -40,6 +56,14 @@ class MH_SZ(AlgoSZ.AlgoSZ):
     def psib(self, mic, k):
         return np.block([self.psi(mic, hp, k) for hp in range(self.room.nbHP)])
 
+    def psib_b(self):
+        mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'B')[0].tolist()
+        return np.block([[self.psib(no_mic)] for no_mic in mic_b])
+
+    def psib_d(self):
+        mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'D')[0].tolist()
+        return np.block([[self.psib(no_mic)] for no_mic in mic_b])
+
     def gamma(self, mic, hp, k):
         gamma = np.zeros((self.Ip, self.nFir))
         for n in range(self.Ip):
@@ -48,6 +72,14 @@ class MH_SZ(AlgoSZ.AlgoSZ):
 
     def gammab(self, mic, k):
         return np.block([self.gamma(mic, hp, k) for hp in range(self.room.nbHP)])
+
+    def gammab_b(self, k):
+        mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'B')[0].tolist()
+        return np.block([self.gammab(no_mic, k) for no_mic in mic_b])
+
+    def gammab_d(self, k):
+        mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'D')[0].tolist()
+        return np.block([self.gammab(no_mic, k) for no_mic in mic_b])
 
     def ul(self, k):
         if k < self.nFir:
