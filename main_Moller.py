@@ -12,7 +12,7 @@ class MH_SZ(AlgoSZ.AlgoSZ):
         self.Ic = Ic
         self.Ip = Ip
         self.u = np.zeros(room.nFir)
-        self.A = np.roll(np.eye(self.nFir - 1), -1)
+        self.A = np.roll(np.eye(self.nFir - 0), -1)
         self.A[-1, -1] = 0
         self.b = np.zeros(room.nFir - 1)
         self.b[1] = 1
@@ -25,7 +25,7 @@ class MH_SZ(AlgoSZ.AlgoSZ):
 
     def setInput(self, inp):
         self.inp = inp
-        self.h = room.getAllH(np.arange(len(inp))*self.room.Ts) # h = (len(t_tot), self.nbMic, self.nbHP, self.nFir)
+        self.h = room.getAllH(np.arange(len(inp)+self.Ip)*self.room.Ts) # h = (len(t_tot), self.nbMic, self.nbHP, self.nFir)
 
     def setTarget(self):
         self.p_t = 0
@@ -58,11 +58,11 @@ class MH_SZ(AlgoSZ.AlgoSZ):
 
     def psib_b(self):
         mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'B')[0].tolist()
-        return np.block([[self.psib(no_mic)] for no_mic in mic_b])
+        return np.block([[self.psib(no_mic, self.k)] for no_mic in mic_b])
 
     def psib_d(self):
         mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'D')[0].tolist()
-        return np.block([[self.psib(no_mic)] for no_mic in mic_b])
+        return np.block([[self.psib(no_mic, self.k)] for no_mic in mic_b])
 
     def gamma(self, mic, hp, k):
         gamma = np.zeros((self.Ip, self.nFir))
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     MH.setInput(x)
 
     MH.k = 10
-    U=MH.Ub()
+    U=MH.gammab_d(10)
     print(U)
     plt.matshow(U)
     plt.show()
