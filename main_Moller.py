@@ -75,11 +75,11 @@ class MH_SZ(AlgoSZ.AlgoSZ):
 
     def gammab_b(self, k):
         mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'B')[0].tolist()
-        return np.block([self.gammab(no_mic, k) for no_mic in mic_b])
+        return np.block([[self.gammab(no_mic, k)] for no_mic in mic_b])
 
     def gammab_d(self, k):
         mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'D')[0].tolist()
-        return np.block([self.gammab(no_mic, k) for no_mic in mic_b])
+        return np.block([[self.gammab(no_mic, k)] for no_mic in mic_b])
 
     def ul(self, k):
         if k < self.nFir:
