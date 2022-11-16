@@ -53,16 +53,16 @@ class MH_SZ(AlgoSZ.AlgoSZ):
                     psi[n1, n2] = self.h[k + n1, mic, hp, (n1-n2)]
         return psi
 
-    def psib(self, mic, k):
-        return np.block([self.psi(mic, hp, k) for hp in range(self.room.nbHP)])
+    def psib(self, mic):
+        return np.block([self.psi(mic, hp, self.k) for hp in range(self.room.nbHP)])
 
     def psib_b(self):
         mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'B')[0].tolist()
-        return np.block([[self.psib(no_mic, self.k)] for no_mic in mic_b])
+        return np.block([[self.psib(no_mic)] for no_mic in mic_b])
 
     def psib_d(self):
         mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'D')[0].tolist()
-        return np.block([[self.psib(no_mic, self.k)] for no_mic in mic_b])
+        return np.block([[self.psib(no_mic)] for no_mic in mic_b])
 
     def gamma(self, mic, hp, k):
         gamma = np.zeros((self.Ip, self.nFir))
@@ -70,16 +70,16 @@ class MH_SZ(AlgoSZ.AlgoSZ):
             gamma[n, :] = self.h[k + n, mic, hp, :].T @ self.A**n
         return gamma
 
-    def gammab(self, mic, k):
-        return np.block([self.gamma(mic, hp, k) for hp in range(self.room.nbHP)])
+    def gammab(self, mic):
+        return np.block([self.gamma(mic, hp, self.k) for hp in range(self.room.nbHP)])
 
-    def gammab_b(self, k):
+    def gammab_b(self):
         mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'B')[0].tolist()
-        return np.block([[self.gammab(no_mic, k)] for no_mic in mic_b])
+        return np.block([[self.gammab(no_mic)] for no_mic in mic_b])
 
-    def gammab_d(self, k):
+    def gammab_d(self):
         mic_b = np.where(np.array([x.type for x in self.room.mic]) == 'D')[0].tolist()
-        return np.block([[self.gammab(no_mic, k)] for no_mic in mic_b])
+        return np.block([[self.gammab(no_mic)] for no_mic in mic_b])
 
     def ul(self, k):
         if k < self.nFir:
