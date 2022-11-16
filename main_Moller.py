@@ -121,8 +121,10 @@ if __name__ == "__main__":
     x = np.arange(1, 20)
     MH.setInput(x)
 
+    #MH.solve(a_d=0.99, a_t=0.01, a_w=1e-5, a_env=0, a_bs=0)
+
     MH.k = 10
-    U=MH.gammab_d(10)
+    U=MH.psib_b()
     print(U)
     plt.matshow(U)
     plt.show()
