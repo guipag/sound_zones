@@ -3,6 +3,7 @@ import AlgoSZ
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.linalg as lg
+import scipy.signal as sg
 
 class MH_SZ(AlgoSZ.AlgoSZ):
     def __init__(self, room, Ic, Ip):
@@ -37,13 +38,17 @@ class MH_SZ(AlgoSZ.AlgoSZ):
         Q_w = a_w * np.eye(len(Q_d))
         Q_env = a_env * np.kron(np.ones(self.room.nbHP * self.Ic), self.w_env)
         Q_bs = a_bs * self.Ub().T @ self.psib_s().T @ self.psib_s() @ self.Ub()
-        q_d = a_d * self.Ub().T @ self.psib_d().T @ self.gammab_d(self.k) @ self.z
-        q_b = a_t * self.Ub().T @ self.psib_b().T @ (self.gammab_b(self.k) @ self.z - self.p_t)
+        q_d = a_d * self.Ub().T @ self.psib_d().T @ self.gammab_d() @ self.z
+        q_b = a_t * self.Ub().T @ self.psib_b().T @ (self.gammab_b() @ self.z - self.p_t)
         q_bs = a_bs * self.Ub().T @ self.psib_s().T @ self.gammab_s() @ self.z
         return lg.solve(Q_d + Q_b + Q_w + Q_env + Q_bs, q_d + q_b + q_bs)
 
     def setWenv(self, w_env):
         self.w_env = w_env
+        return self
+
+    def setBPFilter(self, bp):
+        self.w_bp = bp
 
     def psi(self, mic, hp, k):
         psi = np.zeros((self.Ip, self.Ip))
@@ -53,6 +58,17 @@ class MH_SZ(AlgoSZ.AlgoSZ):
                     psi[n1, n2] = self.h[k + n1, mic, hp, (n1-n2)]
         return psi
 
+
+    def psi_s(self):
+        psi = np.zeros((self.Ip, self.Ip))
+        for n1 in range(self.Ip):
+            for n2 in range(self.Ip):
+                if n1 >= n2:
+                    psi[n1, n2] = self.w_bp[(n1-n2)]
+        return psi
+
+    def psib_s(self):
+        return np.block([[np.block([self.psi_s() for _ in range(self.room.nbHP)])] for _ in range(self.room.nbMic)])
     def psib(self, mic):
         return np.block([self.psi(mic, hp, self.k) for hp in range(self.room.nbHP)])
 
@@ -69,6 +85,15 @@ class MH_SZ(AlgoSZ.AlgoSZ):
         for n in range(self.Ip):
             gamma[n, :] = self.h[k + n, mic, hp, :].T @ self.A**n
         return gamma
+
+    def gamma_s(self):
+        gamma = np.zeros((self.Ip, self.nFir))
+        for n in range(self.Ip):
+            gamma[n, :] = self.w_bp.T @ self.A ** n
+        return gamma
+
+    def gammab_s(self):
+        return np.block([self.gamma_s() for _ in range(self.room.nbHP)])
 
     def gammab(self, mic):
         return np.block([self.gamma(mic, hp, self.k) for hp in range(self.room.nbHP)])
@@ -120,11 +145,12 @@ if __name__ == "__main__":
 
     x = np.arange(1, 20)
     MH.setInput(x)
+    MH.setBPFilter(sg.firwin(numtaps=nFir, cutoff=[50, 350], pass_zero=False, fs=Fs))
 
     #MH.solve(a_d=0.99, a_t=0.01, a_w=1e-5, a_env=0, a_bs=0)
 
     MH.k = 10
-    U=MH.psib_b()
+    U=MH.psib_s()
     print(U)
     plt.matshow(U)
     plt.show()
